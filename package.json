@@ -1,0 +1,15 @@
+{
+  "name": "pdfmaker",
+  "version": "1.0.0",
+  "description": "Print HTML to PDF with headless chrome",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Will Roberts",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^1.11.0"
+  }
+}
