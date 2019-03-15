@@ -1,7 +1,7 @@
 {
-  "name": "pdfmaker",
+  "name": "jshtmltopdf",
   "version": "1.0.0",
-  "description": "Print HTML to PDF with headless chrome",
+  "description": "Print dynamic HTML to PDF with headless chrome and wkhtmltopdf",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -10,6 +10,9 @@
   "author": "Will Roberts",
   "license": "ISC",
   "dependencies": {
-    "puppeteer": "^1.11.0"
+    "minimist": "^1.2.0",
+    "puppeteer": "1.9.0",
+    "shell-quote": "^1.6.1",
+    "tmp": "0.0.33"
   }
 }
