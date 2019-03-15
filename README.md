@@ -1,5 +1,7 @@
 # jshtmltopdf: AngularJS HTML -> PDF
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/wroberts/jshtmltopdf.svg)](https://greenkeeper.io/)
+
 This project converts dynamic HTML (such as a site using the
 AngularJS framework) to PDF.  It does this in two steps:
 
