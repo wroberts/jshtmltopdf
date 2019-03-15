@@ -13,35 +13,38 @@ function sleep(ms) {
 }
 
 async function runPuppetteer(url, outFile, options) {
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.CHROME_BIN || null,
-    args: ['--headless', '--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
-  const page = await browser.newPage();
-  if (options.token) {
-    page.setExtraHTTPHeaders({ authorization: options.token });
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: process.env.CHROME_BIN || null,
+      args: ['--headless', '--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+    const page = await browser.newPage();
+    if (options.token) {
+      page.setExtraHTTPHeaders({ authorization: options.token });
+    }
+    await page.goto(url, {waitUntil: 'networkidle2'});
+
+    const openAllAspectsButton = await page.$('rootscope-event-button > button');
+    //console.log(openAllAspectsButton);
+    if (!openAllAspectsButton) {
+      throw new Error('Could not find open all aspects button');
+    }
+    await openAllAspectsButton.click();
+    await sleep(2000);
+
+    // page.pdf() is currently supported only in headless mode.
+    // @see https://bugs.chromium.org/p/chromium/issues/detail?id=753118
+    //await page.pdf({
+    //  path: 'output.pdf',
+    //  format: 'a4'
+    //});
+    const html = await page.content();
+    await writeFilePromise(outFile, html);
+  } finally {
+    browser.close();
   }
-  await page.goto(url, {waitUntil: 'networkidle2'});
-
-  const openAllAspectsButton = await page.$('rootscope-event-button > button');
-  //console.log(openAllAspectsButton);
-  if (!openAllAspectsButton) {
-    throw new Error('Could not find open all aspects button');
-  }
-  await openAllAspectsButton.click();
-  await sleep(2000);
-
-  // page.pdf() is currently supported only in headless mode.
-  // @see https://bugs.chromium.org/p/chromium/issues/detail?id=753118
-  //await page.pdf({
-  //  path: 'output.pdf',
-  //  format: 'a4'
-  //});
-  const html = await page.content();
-  await writeFilePromise(outFile, html);
-
-  browser.close();
 }
 
 function usage() {
