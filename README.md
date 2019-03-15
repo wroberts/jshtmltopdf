@@ -8,7 +8,7 @@ AngularJS framework) to PDF.  It does this in two steps:
 2. Use wkhtmltopdf to convert the static HTML to PDF.
 
 ## Build
-
+ 
 ```
 docker build -t jshtmltopdf .
 ```
