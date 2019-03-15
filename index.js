@@ -25,7 +25,7 @@ async function runPuppetteer(url, outFile, options) {
   await page.goto(url, {waitUntil: 'networkidle2'});
 
   const openAllAspectsButton = await page.$('rootscope-event-button > button');
-  console.log(openAllAspectsButton);
+  //console.log(openAllAspectsButton);
   if (!openAllAspectsButton) {
     throw new Error('Could not find open all aspects button');
   }
@@ -58,18 +58,18 @@ function usage() {
 
 function main() {
   const argv = parseArgs(process.argv.slice(2), { boolean: ["toc"] });
-  console.log(argv);
+  //console.log(argv);
 
   if (argv._.length < 2) {
     usage();
     process.exit(1);
   }
   const [url, output] = argv._;
-  console.log(url);
-  console.log(output);
+  //console.log(url);
+  //console.log(output);
 
   const tempfile = `${tmp.tmpNameSync()}.html`;
-  console.log(tempfile);
+  //console.log(tempfile);
 
   argv.pdfopts = argv.pdfopts || '-s a4 --print-media-type';
   const wkargs = parseShell(argv.pdfopts);
@@ -87,7 +87,7 @@ function main() {
   wkargs.push(tempfile);
   wkargs.push(output);
 
-  console.log(wkargs);
+  //console.log(wkargs);
 
   runPuppetteer(url, tempfile, { token: argv.token })
     .then(() => {
