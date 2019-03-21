@@ -31,7 +31,7 @@ async function runPuppetteer(url, outFile, options) {
         const div = await page.$(id);
         await page.evaluate(d => d.classList.add('in'), div);
       }
-      await sleep(2000);
+      //await sleep(2000);
     }
 
     // page.pdf() is currently supported only in headless mode.
