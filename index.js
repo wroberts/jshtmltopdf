@@ -26,13 +26,13 @@ async function runPuppetteer(url, outFile, options) {
     }
     await page.goto(url, {waitUntil: 'networkidle2'});
 
-    const openAllAspectsButton = await page.$('rootscope-event-button > button');
-    //console.log(openAllAspectsButton);
-    if (!openAllAspectsButton) {
-      throw new Error('Could not find open all aspects button');
+    if (options.uncollapse) {
+      for (let id of options.uncollapse) {
+        const div = await page.$(id);
+        await page.evaluate(d => d.classList.add('in'), div);
+      }
+      await sleep(2000);
     }
-    await openAllAspectsButton.click();
-    await sleep(2000);
 
     // page.pdf() is currently supported only in headless mode.
     // @see https://bugs.chromium.org/p/chromium/issues/detail?id=753118
@@ -52,11 +52,13 @@ function usage() {
   console.log("Usage:");
   console.log("   jshtmltopdf [OPTIONS] URL PDF\n");
   console.log("Options:");
-  console.log("   --toc       flag: ask wkhtmltopdf to insert a table of contents");
-  console.log("   --pdfopts   flags to send to wkhtmltopdf. Defaults to");
-  console.log("               '-s a4 --print-media-type'.");
-  console.log("   --auth      if specified, the value of the Authorization header to");
-  console.log("               be sent in HTTP requests");
+  console.log("   --toc         flag: ask wkhtmltopdf to insert a table of contents");
+  console.log("   --pdfopts     flags to send to wkhtmltopdf. Defaults to");
+  console.log("                 '-s a4 --print-media-type'.");
+  console.log("   --token       if specified, the value of the Authorization header to");
+  console.log("                 be sent in HTTP requests");
+  console.log("   --uncollapse  a comma-separated list of element IDs that should be");
+  console.log("                 uncollapsed before printing");
 }
 
 function main() {
@@ -92,7 +94,10 @@ function main() {
 
   //console.log(wkargs);
 
-  runPuppetteer(url, tempfile, { token: argv.token })
+  if (argv.uncollapse) {
+    argv.uncollapse = argv.uncollapse.split(/,/g);
+  }
+  runPuppetteer(url, tempfile, { token: argv.token, uncollapse: argv.uncollapse })
     .then(() => {
       const wkprocess = child_process.spawnSync('wkhtmltopdf', wkargs, { cwd: process.cwd() });
       console.log(wkprocess.stdout.toString());
