@@ -13,7 +13,8 @@ RUN apk update && apk upgrade && \
       chromium@edge \
       harfbuzz@edge \
       nss@edge \
-      nodejs npm
+      nodejs npm \
+      redis bash
 
 COPY . /app
 WORKDIR /app
@@ -28,4 +29,4 @@ WORKDIR /app
 #USER pptruser
 
 RUN npm i
-ENTRYPOINT ["node", "index.js"]
+ENTRYPOINT ["sh", "entrypoint.sh"]
