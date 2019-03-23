@@ -49,7 +49,7 @@ jobQueue.on('job retrying', (jobId, err) => {
 function sendJob(data) {
   const job = jobQueue.createJob(data)
         .retries(3)
-        .backoff('fixed', 1000)
+        .backoff('fixed', 2000)
         .timeout(15000);
 
   job.on('succeeded', function (result) {

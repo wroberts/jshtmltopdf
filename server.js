@@ -18,6 +18,7 @@ const HTTP_SERVER_PORT = 8080;
 const writeFilePromise = util.promisify(fs.writeFile);
 
 async function runPuppetteer(url, outFile, options) {
+  //console.log(`runPuppetteer starting: ${url} ${outFile}`);
   let browser;
   try {
     browser = await puppeteer.launch({
@@ -48,6 +49,7 @@ async function runPuppetteer(url, outFile, options) {
     const html = await page.content();
     await writeFilePromise(outFile, html);
   } finally {
+    //console.log('runPuppetteer exiting');
     browser.close();
   }
 }
@@ -99,6 +101,7 @@ const options = {
   isWorker: true,
   sendEvents: true,
   stallInterval: 10000,
+  activateDelayedJobs: true,
 
   removeOnSuccess: true,
   removeOnFailure: true,
@@ -106,7 +109,6 @@ const options = {
   delayedDebounce: 1000,
   storeJobs: true,
   ensureScripts: true,
-  activateDelayedJobs: false,
   redisScanCount: 100
 };
 
@@ -131,14 +133,10 @@ function startHttpServer() {
 
 jobQueue.on('ready', function () {
   startHttpServer();
-  jobQueue.process(async (job, done) => {
+  jobQueue.process(async (job) => {
     console.log('processing job ' + job.id);
-    try {
-      const result = await handlePDFJob(job.data);
-      done(null, result);
-    } catch (err) {
-      done(err);
-    }
+    const result = await handlePDFJob(job.data);
+    return result;
   });
 
   console.log('processing jobs...');
