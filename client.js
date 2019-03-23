@@ -64,6 +64,8 @@ function sendJob(data) {
       console.log('saved job ' + job.id);
     }
   });
+
+  return job;
 }
 
 function usage() {
@@ -98,8 +100,16 @@ function main() {
     ...argv,
   };
 
-  sendJob(jobData);
-  setTimeout(jobQueue.close, 15000);
+  const job = sendJob(jobData);
+
+  job.on('succeeded', (result) => {
+    console.log(`Job ${job.id} succeeded with result: ${result}`);
+    jobQueue.close();
+  });
+  job.on('failed', (err) => {
+    console.log(`Job ${job.id} failed with error ${err.message}`);
+    jobQueue.close();
+  });
 }
 
 main();
