@@ -15,6 +15,7 @@ const HTTP_SERVER_PORT = 8080;
 //  PDF Generation
 // ------------------------------------------------------------
 
+const readFilePromise = util.promisify(fs.readFile);
 const writeFilePromise = util.promisify(fs.writeFile);
 const unlinkPromise = util.promisify(fs.unlink);
 
@@ -77,12 +78,16 @@ async function handlePDFJob(jobData) {
   let stderr = '';
   let exitcode;
   try {
-    const tempfile = await tmpNamePromise({ template: '/tmp/tmp-XXXXXXXXX.html' });
-    //console.log(tempfile);
+    const tempHtml = await tmpNamePromise({ template: '/tmp/tmp-XXXXXXXXX.html' });
+    //console.log(tempHtml);
+
+    jobData.pdfopts = jobData.pdfopts || '-s a4 --print-media-type';
+    const wkargs = parseShell(jobData.pdfopts);
 
     try {
-      jobData.pdfopts = jobData.pdfopts || '-s a4 --print-media-type';
-      const wkargs = parseShell(jobData.pdfopts);
+      await runPuppetteer(jobData.url, tempHtml, { token: jobData.token, uncollapse: jobData.uncollapse });
+
+      const tempPdf = await tmpNamePromise({ template: '/tmp/tmp-XXXXXXXXX.pdf' });
 
       wkargs.push('--disable-javascript');
       if (jobData.token) {
@@ -94,8 +99,8 @@ async function handlePDFJob(jobData) {
       if (jobData.toc) {
         wkargs.push('toc');
       }
-      wkargs.push(tempfile);
-      wkargs.push(jobData.output);
+      wkargs.push(tempHtml);
+      wkargs.push(tempPdf);
 
       //console.log(wkargs);
 
@@ -103,15 +108,25 @@ async function handlePDFJob(jobData) {
         jobData.uncollapse = jobData.uncollapse.split(/,/g);
       }
 
-      await runPuppetteer(jobData.url, tempfile, { token: jobData.token, uncollapse: jobData.uncollapse });
-
       wkprocess = child_process.spawn('wkhtmltopdf', wkargs, { cwd: process.cwd() });
       wkprocess.stdout.on('data', (data) => { stdout = stdout + data; });
       wkprocess.stderr.on('data', (data) => { stderr = stderr + data; });
       wkprocess.on('close', (code) => { exitcode = code; });
-      await promiseFromChildProcess(wkprocess);
+
+      try {
+        await promiseFromChildProcess(wkprocess);
+
+        const buffer = await readFilePromise(tempPdf);
+        return buffer.toString('base64');
+      } finally {
+        try {
+          await unlinkPromise(tempPdf);
+        } catch (err) { console.error(err); }
+      }
     } finally {
-      await unlinkPromise(tempfile);
+      try{
+        await unlinkPromise(tempHtml);
+      } catch (err) { console.error(err); }
     }
   } finally {
     if (wkprocess) {

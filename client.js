@@ -1,3 +1,4 @@
+const fs = require('fs');
 const parseArgs = require('minimist');
 const beeQueue = require('bee-queue');
 
@@ -28,7 +29,7 @@ jobQueue.on('error', (err) => {
   console.log(`A queue error happened: ${err.message}`);
 });
 jobQueue.on('succeeded', (job, result) => {
-  console.log(`Job ${job.id} succeeded with result: ${result}`);
+  console.log(`Job ${job.id} succeeded`);
 });
 jobQueue.on('retrying', (job, err) => {
   console.log(`Job ${job.id} failed with error ${err.message} but is being retried!`);
@@ -40,7 +41,7 @@ jobQueue.on('stalled', (jobId) => {
   console.log(`Job ${jobId} stalled and will be reprocessed`);
 });
 jobQueue.on('job succeeded', (jobId, result) => {
-  console.log(`Job ${jobId} succeeded with result: ${result}`);
+  console.log(`Job ${jobId} succeeded`);
 });
 jobQueue.on('job retrying', (jobId, err) => {
   console.log(`Job ${jobId} failed with error ${err.message} but is being retried!`);
@@ -54,7 +55,6 @@ function sendJob(data) {
 
   job.on('succeeded', function (result) {
     console.log('completed job ' + job.id);
-    console.log(result);
   });
 
   job.save(function (err, job) {
@@ -96,14 +96,14 @@ function main() {
 
   const jobData = {
     url,
-    output,
     ...argv,
   };
 
   const job = sendJob(jobData);
 
   job.on('succeeded', (result) => {
-    console.log(`Job ${job.id} succeeded with result: ${result}`);
+    console.log(`Job ${job.id} succeeded with result`);
+    fs.writeFileSync(output, Buffer.from(result, 'base64'));
     jobQueue.close();
   });
   job.on('failed', (err) => {
