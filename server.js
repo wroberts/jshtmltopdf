@@ -16,6 +16,7 @@ const HTTP_SERVER_PORT = 8080;
 // ------------------------------------------------------------
 
 const writeFilePromise = util.promisify(fs.writeFile);
+const unlinkPromise = util.promisify(fs.unlink);
 
 async function runPuppetteer(url, outFile, options) {
   //console.log(`runPuppetteer starting: ${url} ${outFile}`);
@@ -54,38 +55,71 @@ async function runPuppetteer(url, outFile, options) {
   }
 }
 
-function handlePDFJob(jobData) {
-  const tempfile = `${tmp.tmpNameSync()}.html`;
-  //console.log(tempfile);
+function promiseFromChildProcess(child) {
+  return new Promise(function (resolve, reject) {
+    child.addListener("error", reject);
+    child.addListener("exit", resolve);
+  });
+}
 
-  jobData.pdfopts = jobData.pdfopts || '-s a4 --print-media-type';
-  const wkargs = parseShell(jobData.pdfopts);
-
-  wkargs.push('--disable-javascript');
-  if (jobData.token) {
-    wkargs.push('--custom-header');
-    wkargs.push('Authorization');
-    wkargs.push(jobData.token);
-    wkargs.push('--custom-header-propagation');
-  }
-  if (jobData.toc) {
-    wkargs.push('toc');
-  }
-  wkargs.push(tempfile);
-  wkargs.push(jobData.output);
-
-  //console.log(wkargs);
-
-  if (jobData.uncollapse) {
-    jobData.uncollapse = jobData.uncollapse.split(/,/g);
-  }
-  return runPuppetteer(jobData.url, tempfile, { token: jobData.token, uncollapse: jobData.uncollapse })
-    .then(() => {
-      const wkprocess = child_process.spawnSync('wkhtmltopdf', wkargs, { cwd: process.cwd() });
-      console.log(wkprocess.stdout.toString());
-      console.error(wkprocess.stderr.toString());
-      console.log(`wkhtmltopdf exited with status ${wkprocess.status}`);
+function tmpNamePromise(options) {
+  return new Promise((resolve, reject) => {
+    tmp.tmpName(options, (err, path) => {
+      if (err) reject(err);
+      resolve(path);
     });
+  });
+}
+
+async function handlePDFJob(jobData) {
+  let wkprocess;
+  let stdout = '';
+  let stderr = '';
+  let exitcode;
+  try {
+    const tempfile = await tmpNamePromise({ template: '/tmp/tmp-XXXXXXXXX.html' });
+    //console.log(tempfile);
+
+    try {
+      jobData.pdfopts = jobData.pdfopts || '-s a4 --print-media-type';
+      const wkargs = parseShell(jobData.pdfopts);
+
+      wkargs.push('--disable-javascript');
+      if (jobData.token) {
+        wkargs.push('--custom-header');
+        wkargs.push('Authorization');
+        wkargs.push(jobData.token);
+        wkargs.push('--custom-header-propagation');
+      }
+      if (jobData.toc) {
+        wkargs.push('toc');
+      }
+      wkargs.push(tempfile);
+      wkargs.push(jobData.output);
+
+      //console.log(wkargs);
+
+      if (jobData.uncollapse) {
+        jobData.uncollapse = jobData.uncollapse.split(/,/g);
+      }
+
+      await runPuppetteer(jobData.url, tempfile, { token: jobData.token, uncollapse: jobData.uncollapse });
+
+      wkprocess = child_process.spawn('wkhtmltopdf', wkargs, { cwd: process.cwd() });
+      wkprocess.stdout.on('data', (data) => { stdout = stdout + data; });
+      wkprocess.stderr.on('data', (data) => { stderr = stderr + data; });
+      wkprocess.on('close', (code) => { exitcode = code; });
+      await promiseFromChildProcess(wkprocess);
+    } finally {
+      await unlinkPromise(tempfile);
+    }
+  } finally {
+    if (wkprocess) {
+      console.log(stdout);
+      console.error(stderr);
+      console.log(`wkhtmltopdf exited with status ${exitcode}`);
+    }
+  }
 }
 
 // ------------------------------------------------------------
