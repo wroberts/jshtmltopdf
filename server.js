@@ -19,6 +19,48 @@ const readFilePromise = util.promisify(fs.readFile);
 const writeFilePromise = util.promisify(fs.writeFile);
 const unlinkPromise = util.promisify(fs.unlink);
 
+async function rewriteUrls(page) {
+  // https://stackoverflow.com/a/2725168/1062499
+  // accessing relative URLs resolves them to absolute URLs;
+  // just store back the resolved value.
+  await page.$$eval('a', async (els) => { els.forEach((el) => { el['href'] = el['href']; }); });
+  await page.$$eval('applet', async (els) => { els.forEach((el) => { el['codebase'] = el['codebase']; }); });
+  await page.$$eval('area', async (els) => { els.forEach((el) => { el['href'] = el['href']; }); });
+  await page.$$eval('audio', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+  await page.$$eval('base', async (els) => { els.forEach((el) => { el['href'] = el['href']; }); });
+  await page.$$eval('blockquote', async (els) => { els.forEach((el) => { el['cite'] = el['cite']; }); });
+  await page.$$eval('body', async (els) => { els.forEach((el) => { el['background'] = el['background']; }); });
+  await page.$$eval('button', async (els) => { els.forEach((el) => { el['formaction'] = el['formaction']; }); });
+  await page.$$eval('command', async (els) => { els.forEach((el) => { el['icon'] = el['icon']; }); });
+  await page.$$eval('del', async (els) => { els.forEach((el) => { el['cite'] = el['cite']; }); });
+  await page.$$eval('embed', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+  await page.$$eval('form', async (els) => { els.forEach((el) => { el['action'] = el['action']; }); });
+  await page.$$eval('frame', async (els) => { els.forEach((el) => { el['longdesc'] = el['longdesc']; }); });
+  await page.$$eval('frame', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+  await page.$$eval('head', async (els) => { els.forEach((el) => { el['profile'] = el['profile']; }); });
+  await page.$$eval('html', async (els) => { els.forEach((el) => { el['manifest'] = el['manifest']; }); });
+  await page.$$eval('iframe', async (els) => { els.forEach((el) => { el['longdesc'] = el['longdesc']; }); });
+  await page.$$eval('iframe', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+  await page.$$eval('img', async (els) => { els.forEach((el) => { el['longdesc'] = el['longdesc']; }); });
+  await page.$$eval('img', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+  await page.$$eval('img', async (els) => { els.forEach((el) => { el['usemap'] = el['usemap']; }); });
+  await page.$$eval('input', async (els) => { els.forEach((el) => { el['formaction'] = el['formaction']; }); });
+  await page.$$eval('input', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+  await page.$$eval('input', async (els) => { els.forEach((el) => { el['usemap'] = el['usemap']; }); });
+  await page.$$eval('ins', async (els) => { els.forEach((el) => { el['cite'] = el['cite']; }); });
+  await page.$$eval('link', async (els) => { els.forEach((el) => { el['href'] = el['href']; }); });
+  await page.$$eval('object', async (els) => { els.forEach((el) => { el['classid'] = el['classid']; }); });
+  await page.$$eval('object', async (els) => { els.forEach((el) => { el['codebase'] = el['codebase']; }); });
+  await page.$$eval('object', async (els) => { els.forEach((el) => { el['data'] = el['data']; }); });
+  await page.$$eval('object', async (els) => { els.forEach((el) => { el['usemap'] = el['usemap']; }); });
+  await page.$$eval('q', async (els) => { els.forEach((el) => { el['cite'] = el['cite']; }); });
+  await page.$$eval('script', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+  await page.$$eval('source', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+  await page.$$eval('track', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+  await page.$$eval('video', async (els) => { els.forEach((el) => { el['poster'] = el['poster']; }); });
+  await page.$$eval('video', async (els) => { els.forEach((el) => { el['src'] = el['src']; }); });
+}
+
 async function runPuppetteer(url, outFile, options) {
   //console.log(`runPuppetteer starting: ${url} ${outFile}`);
   let browser;
@@ -48,6 +90,7 @@ async function runPuppetteer(url, outFile, options) {
     //  path: 'output.pdf',
     //  format: 'a4'
     //});
+    await rewriteUrls(page);
     const html = await page.content();
     await writeFilePromise(outFile, html);
   } finally {
