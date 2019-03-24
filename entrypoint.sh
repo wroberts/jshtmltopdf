@@ -8,8 +8,9 @@ redis-server redis.conf  # TODO: make this a service
 
 # start the jshtmltopdf server
 echo "starting jshtmltopdf server"
-node server.js &  # TODO: replace with pm2
+PM2=./node_modules/.bin/pm2
+$PM2 start --env production
 
 ./wait-for-it.sh localhost:8080 -t 120 -- echo 'jshtmltopdf server is reachable'
 
-node cli.js "$@"
+node cli.js "$@" && $PM2 stop jshtmltopdf

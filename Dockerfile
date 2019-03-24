@@ -18,6 +18,7 @@ RUN apk update && apk upgrade && \
 
 COPY . /app
 WORKDIR /app
+EXPOSE 6379
 
 # Add user so we don't need --no-sandbox.
 #RUN addgroup -S pptruser && adduser -S -g pptruser pptruser \
