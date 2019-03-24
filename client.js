@@ -20,6 +20,10 @@ const options = {
 
 const jobQueue = new beeQueue('submitted', options);
 
+jobQueue.checkStalledJobs(15000, (err, numStalled) => {
+  // prints the number of stalled jobs detected every 15 secs
+  console.log('Checked stalled jobs', numStalled);
+});
 jobQueue.on('ready', () => {
   console.log('queue now ready to start doing things');
 });
