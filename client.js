@@ -51,7 +51,7 @@ function sendJob(data) {
   const job = jobQueue.createJob(data)
         .retries(3)
         .backoff('fixed', 2000)
-        .timeout(15000);
+        .timeout(30000);
 
   job.on('succeeded', function (result) {
     console.log('completed job ' + job.id);
