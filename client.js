@@ -1,7 +1,10 @@
 const beeQueue = require('bee-queue');
 
 const redis = {
-  /*host: 'somewhereElse'*/
+  host: '127.0.0.1',
+  port: 6379,
+  db: 0,
+  auth_pass: 'p4ssw0rd',
 };
 
 const options = {
