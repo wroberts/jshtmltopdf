@@ -147,10 +147,6 @@ async function handlePDFJob(jobData) {
 
       //console.log(wkargs);
 
-      if (jobData.uncollapse) {
-        jobData.uncollapse = jobData.uncollapse.split(/,/g);
-      }
-
       wkprocess = child_process.spawn('wkhtmltopdf', wkargs, { cwd: process.cwd() });
       wkprocess.stdout.on('data', (data) => { stdout = stdout + data; });
       wkprocess.stderr.on('data', (data) => { stderr = stderr + data; });

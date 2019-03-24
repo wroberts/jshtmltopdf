@@ -12,4 +12,4 @@ node server.js &  # TODO: replace with pm2
 
 ./wait-for-it.sh localhost:8080 -t 120 -- echo 'jshtmltopdf server is reachable'
 
-node client.js "$@"
+node cli.js "$@"
