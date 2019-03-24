@@ -11,6 +11,8 @@ echo "starting jshtmltopdf server"
 PM2=./node_modules/.bin/pm2
 $PM2 start --env production
 
-./wait-for-it.sh localhost:8080 -t 120 -- echo 'jshtmltopdf server is reachable'
+#./wait-for-it.sh localhost:8080 -t 120 -- echo 'jshtmltopdf server is reachable'
 
-node cli.js "$@" && $PM2 stop jshtmltopdf
+#node cli.js "$@" && $PM2 stop jshtmltopdf
+
+./idle.sh
