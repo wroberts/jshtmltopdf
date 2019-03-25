@@ -1,14 +1,14 @@
 const Queue = require('bull');
 const child_process = require('child_process');
 const fs = require('fs');
-const http = require('http');
+// const http = require('http');
 const parseShell = require('shell-quote').parse;
 const puppeteer = require('puppeteer');
 const tmp = require('tmp');
 const util = require('util');
 
-const HTTP_SERVER_HOST = '0.0.0.0';
-const HTTP_SERVER_PORT = 8080;
+// const HTTP_SERVER_HOST = '0.0.0.0';
+// const HTTP_SERVER_PORT = 8080;
 
 
 // ------------------------------------------------------------
@@ -193,24 +193,24 @@ const options = {
 
 const jobQueue = new Queue('submitted', options);
 
-let httpServer;
-function startHttpServer() {
-  httpServer = http.createServer((request, response) => {
-    console.log(request.url);
-    response.statusCode = 200;
-    response.setHeader('Content-Type', 'text/plain');
-    response.end('OK');
-  });
-  httpServer.listen(
-    HTTP_SERVER_PORT, HTTP_SERVER_HOST,
-    (err) =>
-      (err ?
-       console.log('something bad happened', err) :
-       console.log(`HTTP server is listening on ${HTTP_SERVER_PORT}`))
-  );
-}
+// let httpServer;
+// function startHttpServer() {
+//   httpServer = http.createServer((request, response) => {
+//     console.log(request.url);
+//     response.statusCode = 200;
+//     response.setHeader('Content-Type', 'text/plain');
+//     response.end('OK');
+//   });
+//   httpServer.listen(
+//     HTTP_SERVER_PORT, HTTP_SERVER_HOST,
+//     (err) =>
+//       (err ?
+//        console.log('something bad happened', err) :
+//        console.log(`HTTP server is listening on ${HTTP_SERVER_PORT}`))
+//   );
+// }
+// startHttpServer();
 
-startHttpServer();
 jobQueue.process((job, done) => {
   console.log('processing job ' + job.id);
   return handlePDFJob(job.data).then((result) => {
