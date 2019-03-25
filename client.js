@@ -23,12 +23,12 @@ const options = {
 
 const jobQueue = new beeQueue('submitted', options);
 
-jobQueue.checkStalledJobs(15000, (err, numStalled) => {
-  // prints the number of stalled jobs detected every 15 secs
-  console.log('Checked stalled jobs', numStalled);
-});
 jobQueue.on('ready', () => {
   console.log('queue now ready to start doing things');
+  jobQueue.checkStalledJobs(15000, (err, numStalled) => {
+    // prints the number of stalled jobs detected every 15 secs
+    console.log('Checked stalled jobs', numStalled);
+  });
 });
 jobQueue.on('error', (err) => {
   console.log(`A queue error happened: ${err.message}`);
@@ -62,15 +62,13 @@ function sendJob(data) {
     console.log('completed job ' + job.id);
   });
 
-  job.save(function (err, job) {
-    if (err) {
-      console.log('job failed to save');
-    } else {
-      console.log('saved job ' + job.id);
-    }
+  return job.save().then((job2) => {
+    console.log(`saved job ${job2.id}`);
+    return job2;
+  }).catch((err) => {
+    console.log(`job failed to save: ${err}`);
+    throw err;
   });
-
-  return job;
 }
 
 module.exports = {

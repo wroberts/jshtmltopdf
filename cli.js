@@ -16,7 +16,7 @@ function usage() {
   console.log("                 uncollapsed before printing");
 }
 
-function main() {
+async function main() {
   const argv = parseArgs(process.argv.slice(2), { boolean: ["toc"] });
   //console.log(argv);
 
@@ -37,7 +37,12 @@ function main() {
     ...argv,
   };
 
-  const job = sendJob(jobData);
+  try {
+    const job = await sendJob(jobData);
+  } catch (err) {
+    console.log(`error sending Job: ${err}`);
+    return;
+  }
 
   job.on('succeeded', (result) => {
     console.log(`Job ${job.id} succeeded with result`);
@@ -50,4 +55,4 @@ function main() {
   });
 }
 
-main();
+main().then(console.log).catch(console.error);
