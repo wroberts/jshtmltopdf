@@ -1,4 +1,4 @@
-const beeQueue = require('bee-queue');
+const Queue = require('bull');
 const child_process = require('child_process');
 const fs = require('fs');
 const http = require('http');
@@ -184,26 +184,14 @@ const redis = {
   host: '127.0.0.1',
   port: 6379,
   db: 0,
-  auth_pass: 'p4ssw0rd',
+  password: 'p4ssw0rd',
 };
 
 const options = {
   redis,
-  isWorker: true,
-  sendEvents: true,
-  stallInterval: 10000,
-  activateDelayedJobs: true,
-
-  removeOnSuccess: true,
-  removeOnFailure: true,
-  nearTermWindow: 1200000,
-  delayedDebounce: 1000,
-  storeJobs: true,
-  ensureScripts: true,
-  redisScanCount: 100
 };
 
-const jobQueue = new beeQueue('submitted', options);
+const jobQueue = new Queue('submitted', options);
 
 let httpServer;
 function startHttpServer() {
@@ -222,32 +210,25 @@ function startHttpServer() {
   );
 }
 
-jobQueue.on('ready', function () {
-  startHttpServer();
-  jobQueue.process(async (job) => {
-    console.log('processing job ' + job.id);
-    const result = await handlePDFJob(job.data);
-    return result;
-  });
-
-  console.log('processing jobs...');
+startHttpServer();
+jobQueue.process((job, done) => {
+  console.log('processing job ' + job.id);
+  return handlePDFJob(job.data).then((result) => {
+    console.log('finished processing job ' + job.id);
+    console.log(`result of length ${result.length}`);
+    done(null, result);
+  }).catch((err) => { done(err); });
 });
-
-// Some reasonable period of time for all your concurrent jobs to
-// finish processing. If a job does not finish processing in this
-// time, it will stall and be retried. As such, do attempt to make
-// your jobs idempotent, as you generally should with any queue that
-// provides at-least-once delivery.
-const TIMEOUT = 30 * 1000;
+console.log('processing jobs...');
 
 process.on('uncaughtException', async () => {
   // Queue#close is idempotent - no need to guard against duplicate
   // calls.
   try {
     if (httpServer) await httpServer.close();
-    await jobQueue.close(TIMEOUT);
+    await jobQueue.close();
   } catch (err) {
-    console.error('bee-queue failed to shut down gracefully', err);
+    console.error('job queue failed to shut down gracefully', err);
   }
   process.exit(1);
 });

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const parseArgs = require('minimist');
-const { sendJob, jobQueue } = require('./client');
+const { sendJob, jobQueue, onJobSuccess, onJobFail } = require('./client');
 
 function usage() {
   console.log("jshtmltopdf\n");
@@ -39,20 +39,21 @@ async function main() {
 
   try {
     const job = await sendJob(jobData);
+    console.log(`Job ${job.id} sent`);
+
+    onJobSuccess(job, async (job, result) => {
+      console.log(`onjobsuccess ${job.id}`);
+      fs.writeFileSync(output, Buffer.from(result, 'base64'));
+      await jobQueue.close();
+    });
+    onJobFail(job, async (job, err) => {
+      console.log(`error performing Job: ${err}`);
+      await jobQueue.close();
+    });
   } catch (err) {
     console.log(`error sending Job: ${err}`);
     return;
   }
-
-  job.on('succeeded', (result) => {
-    console.log(`Job ${job.id} succeeded with result`);
-    fs.writeFileSync(output, Buffer.from(result, 'base64'));
-    jobQueue.close();
-  });
-  job.on('failed', (err) => {
-    console.log(`Job ${job.id} failed with error ${err.message}`);
-    jobQueue.close();
-  });
 }
 
 main().then(console.log).catch(console.error);

@@ -1,77 +1,108 @@
-const beeQueue = require('bee-queue');
+const Queue = require('bull');
 
 const redis = {
   host: '127.0.0.1',
   port: 6379,
   db: 0,
-  auth_pass: 'p4ssw0rd',
+  password: 'p4ssw0rd',
 };
 
 const options = {
   redis,
-  isWorker: false,
-  getEvents: true,
-  stallInterval: 10000,
-
-  nearTermWindow: 1200000,
-  delayedDebounce: 1000,
-  storeJobs: true,
-  ensureScripts: true,
-  activateDelayedJobs: false,
-  redisScanCount: 100
 };
 
-const jobQueue = new beeQueue('submitted', options);
+const jobQueue = new Queue('submitted', options);
 
-jobQueue.on('ready', () => {
-  console.log('queue now ready to start doing things');
-  jobQueue.checkStalledJobs(15000, (err, numStalled) => {
-    // prints the number of stalled jobs detected every 15 secs
-    console.log('Checked stalled jobs', numStalled);
-  });
-});
+const JOB_MAP = {};
+const JOB_SUCCESS_FUNCS = {};
+const JOB_FAIL_FUNCS = {};
+function onJobSuccess(job, func) {
+  JOB_MAP[job.id] = job;
+  if (!(job.id in JOB_SUCCESS_FUNCS)) JOB_SUCCESS_FUNCS[job.id] = [];
+  JOB_SUCCESS_FUNCS[job.id].push(func);
+}
+function onJobFail(job, func) {
+  JOB_MAP[job.id] = job;
+  if (!(job.id in JOB_FAIL_FUNCS)) JOB_FAIL_FUNCS[job.id] = [];
+  JOB_FAIL_FUNCS[job.id].push(func);
+}
+
 jobQueue.on('error', (err) => {
   console.log(`A queue error happened: ${err.message}`);
 });
-jobQueue.on('succeeded', (job, result) => {
-  console.log(`Job ${job.id} succeeded`);
+jobQueue.on('waiting', (jobid) => {
+  console.log(`Job ${jobid} waiting`);
 });
-jobQueue.on('retrying', (job, err) => {
-  console.log(`Job ${job.id} failed with error ${err.message} but is being retried!`);
+jobQueue.on('global:active', (jobid) => {
+  console.log(`Job ${jobid} active`);
 });
-jobQueue.on('failed', (job, err) => {
-  console.log(`Job ${job.id} failed with error ${err.message}`);
+jobQueue.on('global:stalled', (jobid) => {
+  console.log(`Job ${jobid} stalled and will be reprocessed`);
 });
-jobQueue.on('stalled', (jobId) => {
-  console.log(`Job ${jobId} stalled and will be reprocessed`);
+jobQueue.on('global:progress', (jobid, progress) => {
+  console.log(`Job ${jobid} progress ${progress}`);
 });
-jobQueue.on('job succeeded', (jobId, result) => {
-  console.log(`Job ${jobId} succeeded`);
+jobQueue.on('global:completed', (jobid, result) => {
+  console.log(`Job ${jobid} completed. result is of size ${result.length}`);
+  if (jobid in JOB_SUCCESS_FUNCS) {
+    const job = JOB_MAP[jobid];
+    for (let func of JOB_SUCCESS_FUNCS[jobid]) {
+      func(job, result);
+    }
+  }
+  delete JOB_MAP[jobid];
+  delete JOB_SUCCESS_FUNCS[jobid];
+  delete JOB_FAIL_FUNCS[jobid];
 });
-jobQueue.on('job retrying', (jobId, err) => {
-  console.log(`Job ${jobId} failed with error ${err.message} but is being retried!`);
+jobQueue.on('global:failed', (jobid, err) => {
+  console.log(`Job ${jobid} failed with error ${err.message} ${err}`);
+  if (jobid in JOB_FAIL_FUNCS) {
+    const job = JOB_MAP[jobid];
+    for (let func of JOB_FAIL_FUNCS[jobid]) {
+      func(job, err);
+    }
+  }
+  delete JOB_MAP[jobid];
+  delete JOB_SUCCESS_FUNCS[jobid];
+  delete JOB_FAIL_FUNCS[jobid];
+});
+jobQueue.on('paused', () => {
+  console.log('Queue paused');
+});
+jobQueue.on('resumed', () => {
+  console.log('Queue resumed');
+});
+jobQueue.on('cleaned', (jobs, type) => {
+  console.log(`${jobs.length} jobs cleaned`);
+});
+jobQueue.on('drained', () => {
+  console.log('Queue drained');
+});
+jobQueue.on('global:removed', (jobid) =>{
+  console.log(`Job ${jobid} removed`);
 });
 
-function sendJob(data) {
-  const job = jobQueue.createJob(data)
-        .retries(3)
-        .backoff('fixed', 2000)
-        .timeout(30000);
+async function sendJob(data) {
+  try {
+    const job = await jobQueue.add(data, {
+      attempts: 3,
+      timeout: 30000,
+      backoff: { type: 'fixed', delay: 2000 },
+      removeOnComplete: true,
+      removeOnFail: true,
+    });
 
-  job.on('succeeded', function (result) {
-    console.log('completed job ' + job.id);
-  });
-
-  return job.save().then((job2) => {
-    console.log(`saved job ${job2.id}`);
-    return job2;
-  }).catch((err) => {
+    console.log('saved job ' + job.id);
+    return job;
+  } catch (err) {
     console.log(`job failed to save: ${err}`);
     throw err;
-  });
+  }
 }
 
 module.exports = {
   jobQueue,
   sendJob,
+  onJobSuccess,
+  onJobFail,
 };
