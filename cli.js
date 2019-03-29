@@ -1,5 +1,6 @@
 const fs = require('fs');
 const parseArgs = require('minimist');
+const parseShell = require('shell-quote').parse;
 const { sendJob, jobQueue, onJobSuccess, onJobFail } = require('./client');
 
 function usage() {
@@ -30,6 +31,9 @@ async function main() {
 
   if (argv.uncollapse) {
     argv.uncollapse = argv.uncollapse.split(/,/g);
+  }
+  if (argv.pdfopts) {
+    argv.pdfopts = parseShell(argv.pdfopts);
   }
 
   const jobData = {

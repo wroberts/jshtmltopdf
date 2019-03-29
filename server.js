@@ -2,7 +2,6 @@ const Queue = require('bull');
 const child_process = require('child_process');
 const fs = require('fs');
 // const http = require('http');
-const parseShell = require('shell-quote').parse;
 const puppeteer = require('puppeteer');
 const tmp = require('tmp');
 const util = require('util');
@@ -124,8 +123,10 @@ async function handlePDFJob(jobData) {
     const tempHtml = await tmpNamePromise({ template: '/tmp/tmp-XXXXXXXXX.html' });
     //console.log(tempHtml);
 
-    jobData.pdfopts = jobData.pdfopts || '-s a4 --print-media-type';
-    const wkargs = parseShell(jobData.pdfopts);
+    if (!jobData.pdfopts || !Array.isArray(jobData.pdfopts)) {
+      jobData.pdfopts = ['-s', 'a4', '--print-media-type'];
+    }
+    const wkargs = jobData.pdfopts.slice();
 
     try {
       await runPuppetteer(jobData.url, tempHtml, { token: jobData.token, uncollapse: jobData.uncollapse });
